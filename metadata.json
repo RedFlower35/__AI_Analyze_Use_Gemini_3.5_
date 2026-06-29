@@ -1,0 +1,6 @@
+{
+  "name": "AI 數據分析與洞察工具",
+  "description": "貼上 CSV 報表資料，點擊按鈕即可進行 AI 智慧分析，快速獲得資料摘要、關鍵洞察與圖表分析建議。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
