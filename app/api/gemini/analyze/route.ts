@@ -98,23 +98,47 @@ ${focusInstruction}
 請開始進行分析並輸出完整的繁體中文報告：
 `;
 
-    // Call the Gemini API with gemini-3.5-flash
-    const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
-      contents: userPrompt,
-      config: {
-        systemInstruction: systemInstruction,
-        temperature: 0.2, // Low temperature for higher facts consistency in analytical tasks
+    // Call the Gemini API with retry and model fallback support
+    const modelsToTry = ["gemini-3.5-flash", "gemini-2.5-flash", "gemini-1.5-flash"];
+    let responseText = "";
+    let lastError: any = null;
+
+    for (const modelName of modelsToTry) {
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        try {
+          const response = await ai.models.generateContent({
+            model: modelName,
+            contents: userPrompt,
+            config: {
+              systemInstruction: systemInstruction,
+              temperature: 0.2,
+            }
+          });
+          if (response.text) {
+            responseText = response.text;
+            break;
+          }
+        } catch (err: any) {
+          lastError = err;
+          console.warn(`[Gemini API] Model ${modelName} attempt ${attempt} failed:`, err?.message || err);
+          // Wait 1.5 seconds before retrying
+          await new Promise(resolve => setTimeout(resolve, 1500));
+        }
       }
-    });
-
-    const reportText = response.text;
-
-    if (!reportText) {
-      throw new Error("Gemini API 未能生成任何回覆內容。");
+      if (responseText) break;
     }
 
-    return NextResponse.json({ report: reportText });
+    if (!responseText) {
+      if (lastError?.status === 503 || lastError?.message?.includes("503") || lastError?.message?.includes("demand")) {
+        return NextResponse.json(
+          { error: "Google Gemini API 目前伺服器繁忙（高負載中）。請稍等數秒後重新點擊分析按鈕重試。" },
+          { status: 503 }
+        );
+      }
+      throw lastError || new Error("Gemini API 未能生成任何回覆內容。");
+    }
+
+    return NextResponse.json({ report: responseText });
   } catch (error: any) {
     console.error("Gemini API Route Error:", error);
     return NextResponse.json(

@@ -59,23 +59,46 @@ ${csvData}
 
     promptContext += `【使用者最新問題】：${latestMessage}\n\n【助理回覆】：`;
 
-    // Call the Gemini API using gemini-3.5-flash
-    const response = await ai.models.generateContent({
-      model: "gemini-3.5-flash",
-      contents: promptContext,
-      config: {
-        systemInstruction: systemInstruction,
-        temperature: 0.3,
+    // Call the Gemini API using gemini-3.5-flash with retry and fallback
+    const modelsToTry = ["gemini-3.5-flash", "gemini-2.5-flash", "gemini-1.5-flash"];
+    let replyText = "";
+    let lastError: any = null;
+
+    for (const modelName of modelsToTry) {
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        try {
+          const response = await ai.models.generateContent({
+            model: modelName,
+            contents: promptContext,
+            config: {
+              systemInstruction: systemInstruction,
+              temperature: 0.3,
+            }
+          });
+          if (response.text) {
+            replyText = response.text;
+            break;
+          }
+        } catch (err: any) {
+          lastError = err;
+          console.warn(`[Gemini Chat API] Model ${modelName} attempt ${attempt} failed:`, err?.message || err);
+          await new Promise(resolve => setTimeout(resolve, 1500));
+        }
       }
-    });
-
-    const reply = response.text;
-
-    if (!reply) {
-      throw new Error("Gemini API 未能生成任何回覆。");
+      if (replyText) break;
     }
 
-    return NextResponse.json({ reply });
+    if (!replyText) {
+      if (lastError?.status === 503 || lastError?.message?.includes("503") || lastError?.message?.includes("demand")) {
+        return NextResponse.json(
+          { error: "Google Gemini API 目前伺服器繁忙（高負載中）。請稍等數秒後重新嘗試。" },
+          { status: 503 }
+        );
+      }
+      throw lastError || new Error("Gemini API 未能生成任何回覆。");
+    }
+
+    return NextResponse.json({ reply: replyText });
   } catch (error: any) {
     console.error("Gemini Chat API Error:", error);
     return NextResponse.json(
