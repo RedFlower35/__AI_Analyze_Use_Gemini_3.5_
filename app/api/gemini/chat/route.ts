@@ -1,18 +1,20 @@
 import { GoogleGenAI } from "@google/genai";
 import { NextRequest, NextResponse } from "next/server";
 
-// Initialize the Google Gen AI SDK on the server side
-const ai = new GoogleGenAI({
-  apiKey: process.env.GEMINI_API_KEY,
-  httpOptions: {
-    headers: {
-      'User-Agent': 'aistudio-build',
-    }
-  }
-});
-
 export async function POST(req: NextRequest) {
   try {
+    const apiKey = process.env.GEMINI_API_KEY;
+    if (!apiKey) {
+      return NextResponse.json(
+        { error: "未檢測到 GEMINI_API_KEY，請先在專案根目錄建立 .env.local 檔案並設定 GEMINI_API_KEY。" },
+        { status: 500 }
+      );
+    }
+
+    const ai = new GoogleGenAI({
+      apiKey: apiKey,
+    });
+
     const { csvData, history, latestMessage } = await req.json();
 
     if (!csvData) {
