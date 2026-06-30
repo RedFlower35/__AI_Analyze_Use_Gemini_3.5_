@@ -60,7 +60,7 @@ ${csvData}
     promptContext += `【使用者最新問題】：${latestMessage}\n\n【助理回覆】：`;
 
     // Call the Gemini API using gemini-3.5-flash with retry and fallback
-    const modelsToTry = ["gemini-3.5-flash", "gemini-2.5-flash", "gemini-1.5-flash"];
+    const modelsToTry = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
     let replyText = "";
     let lastError: any = null;
 

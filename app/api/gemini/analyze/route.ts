@@ -99,7 +99,7 @@ ${focusInstruction}
 `;
 
     // Call the Gemini API with retry and model fallback support
-    const modelsToTry = ["gemini-3.5-flash", "gemini-2.5-flash", "gemini-1.5-flash"];
+    const modelsToTry = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-1.5-flash"];
     let responseText = "";
     let lastError: any = null;
 
